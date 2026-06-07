@@ -374,7 +374,7 @@ extract_release_info() {
     local os_arch="$2"
     
     local version
-    version=$(echo "$release_info" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4 | sed 's/^v//')
+    version=$(echo "$release_info" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4 | sed 's/^v//' | tr -d '\n\r')
     
     if [[ -z "$version" ]]; then
         log_error "Failed to extract version from release info"
