@@ -368,33 +368,35 @@ fetch_release_info() {
     echo "$release_info"
 }
 
-# Extract version and download URL from release info
+# Extract version and download URL from release info (FIXED)
 extract_release_info() {
     local release_info="$1"
     local os_arch="$2"
     
     local version
-    version=$(echo "$release_info" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4 | sed 's/^v//' | tr -d '\n\r')
+    version=$(echo "$release_info" | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4 | sed 's/^v//')
     
     if [[ -z "$version" ]]; then
         log_error "Failed to extract version from release info"
         exit 1
     fi
     
-    local expected_filename="CLIProxyAPI_$(echo ${version}_${os_arch} | tr -d '\n\r')"
-    local download_url=""
+    # Build exact pattern with escaped dots to avoid matching .sha256
+    local expected_pattern="CLIProxyAPI_${version}_${os_arch}"
     
-    # Handle different file extensions
+    # Append extension with dots escaped
     if [[ "$os_arch" == windows_* ]]; then
-        expected_filename="${expected_filename}.zip"
+        expected_pattern="${expected_pattern}\.zip"
     else
-        expected_filename="${expected_filename}.tar.gz"
+        expected_pattern="${expected_pattern}\.tar\.gz"
     fi
     
-    download_url=$(echo "$release_info" | grep -o "\"browser_download_url\": *\"[^\"]*${expected_filename}[^\"]*\"" | cut -d'"' -f4)
+    # Extract URL, taking only the first match (head -1) to avoid multiline issues
+    local download_url
+    download_url=$(echo "$release_info" | grep -o "\"browser_download_url\": *\"[^\"]*${expected_pattern}[^\"]*\"" | head -1 | cut -d'"' -f4)
     
     if [[ -z "$download_url" ]]; then
-        log_error "Failed to find download URL for ${expected_filename}"
+        log_error "Failed to find download URL for ${expected_pattern}"
         exit 1
     fi
     
@@ -657,9 +659,9 @@ download_file() {
     log_info "Downloading $(basename "$url")..."
     
     if command -v curl >/dev/null 2>&1; then
-        curl -L -o "$output" "$url"
+        curl -fsSL -o "$output" "$url"
     else
-        wget -O "$output" "$url"
+        wget -q -O "$output" "$url"
     fi
     
     if [[ ! -f "$output" ]]; then
