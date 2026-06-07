@@ -381,7 +381,7 @@ extract_release_info() {
         exit 1
     fi
     
-    local expected_filename="CLIProxyAPI_${version}_${os_arch}"
+    local expected_filename="CLIProxyAPI_$(echo ${version}_${os_arch} | tr -d '\n\r')"
     local download_url=""
     
     # Handle different file extensions
